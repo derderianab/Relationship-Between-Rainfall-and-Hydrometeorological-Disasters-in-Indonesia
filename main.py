@@ -4,6 +4,7 @@ import fiona
 import xarray as xr
 import rioxarray
 from rasterstats import zonal_stats
+import matplotlib.pyplot as plt
 
 
 def flip_raster_orientation(precip):
@@ -13,7 +14,7 @@ def flip_raster_orientation(precip):
     return precip
 
 
-### Datasets
+##### Datasets
 disaster_data = r"data/2021_2025_disaster.csv"
 test_data = r"data/test_data.csv"
 regency_boundaries = r"data/shapefile/regency_boundaries.shp"
@@ -51,7 +52,7 @@ raw_precip_2025 = ds_2025.precip
 precip_2025 = flip_raster_orientation(raw_precip_2025)
 
 
-#### Add Daily Precipitation Value to Disaster Dataset
+##### Add Daily Precipitation Value to Disaster Dataset
 for i in range(len(hidromet_gdf)):
     if hidromet_gdf.iloc[i].Tahun == 2025:
 
@@ -74,7 +75,7 @@ for i in range(len(hidromet_gdf)):
         print(hidromet_gdf.iloc[i]["precip"])
 
 
-### Calculate Precip Mean Value of Each Regency
+##### Calculate Precip Mean Value of Each Regency
 grouped_gdf = hidromet_gdf.groupby(by="Kode Kabupaten")
 kab_stats = (
     hidromet_gdf
@@ -91,27 +92,34 @@ kab_stats = (
     .reset_index()
 )
 
+kab_stats["mean_precip"] = kab_stats["mean_precip"].astype(float)
+kab_stats["max_precip"] = kab_stats["max_precip"].astype(float)
+kab_stats["min_precip"] = kab_stats["min_precip"].astype(float)
+kab_stats["median_precip"] = kab_stats["median_precip"].astype(float)
+kab_stats["jumlah_kejadian"] = kab_stats["jumlah_kejadian"].astype(int)
+
 kab_stats = gpd.GeoDataFrame(kab_stats, geometry="geometry", crs=hidromet_gdf.crs)
-print(kab_stats)
-
-#Function parameters
-##hidromet_gdf
-##Tahun
-
+kab_stats = kab_stats.drop(columns=["geometry"])
+kab_stats = kab_stats.drop(columns=["nama_kab"])
+print(kab_stats.info())
+print(kab_stats.columns)
 
 
-#### Overlay NC and Polygon
-# results = []
-# for t in range(len(precip.time)):
-#     daily = precip.isel(time=t)
-#
-#     stats = zonal_stats(
-#         test_polygon,
-#         daily.values,
-#         affine=daily.rio.transform(),
-#         stats="mean",
-#         nodata=-9999
-#     )
-#     print(stats)
-#     results.append(stats)
-# print(len(results))
+##### Visualisation
+### Join Calculated Precip Mean Value to Regencies Datasets
+print(regencies_gdf.columns)
+
+result = pd.merge(
+    left = regencies_gdf,
+    right = kab_stats,
+    left_on="KDPKAB",
+    right_on="KDPKAB",
+    how="left"
+)
+
+print(result.columns)
+print(result.info())
+
+
+### Print Thematic Map
+### Show Table (sorted from minimum)
