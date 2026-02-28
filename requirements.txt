@@ -1,0 +1,7 @@
+pandas
+geopandas
+fiona
+xarray
+rioxarray
+rasterstats
+matplotlib
