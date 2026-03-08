@@ -5,6 +5,7 @@ import xarray as xr
 import rioxarray
 from rasterstats import zonal_stats
 import matplotlib.pyplot as plt
+from shapely import box
 
 
 def flip_raster_orientation(precip):
@@ -19,10 +20,17 @@ disaster_data = r"data/2021_2025_disaster.csv"
 test_data = r"data/test_data.csv"
 regency_boundaries = r"data/shapefile/regency_boundaries.shp"
 regency_boundaries_s0001 = r"data/shapefile/regency_boundaries_s0001.shp"
-rainfall_p05_2025 = r"data/rainfall/chirps-v2.0.2025.days_p05.nc"
-rainfall_p25_2025 = r"data/rainfall/chirps-v2.0.2025.days_p25.nc"
 
-# Indonesia's Extend
+### CHIRPS datasets (rainfall)
+rainfall_p05_2025 = r"data/rainfall/chirps-v2.0.2025.days_p05.nc"
+
+rainfall_p25_2025 = r"data/rainfall/chirps-v2.0.2025.days_p25.nc"
+rainfall_p25_2024 = r"data/rainfall/chirps-v2.0.2024.days_p25.nc"
+rainfall_p25_2023 = r"data/rainfall/chirps-v2.0.2023.days_p25.nc"
+rainfall_p25_2022 = r"data/rainfall/chirps-v2.0.2022.days_p25.nc"
+rainfall_p25_2021 = r"data/rainfall/chirps-v2.0.2021.days_p25.nc"
+
+### Indonesia's Extend
 Lat = [-12, 7]
 Long = [94, 142]
 
@@ -31,13 +39,11 @@ Long = [94, 142]
 disaster_df = pd.read_csv(disaster_data, dtype={"Kode Kabupaten": str})
 wet_hidromet_class = ["Banjir", "Longsor"]
 hidromet_df = disaster_df[disaster_df["Jenis Bencana"].isin(wet_hidromet_class)].copy()
-#print("hidromet_df: ", hidromet_df[hidromet_df["Kode Kabupaten"] == "11.10"])
 
 
 ##### Pre Process Regencies Data
 regencies_gdf = gpd.read_file(regency_boundaries, columns=["KDPKAB", "NAMOBJ"])
 regencies_gdf = regencies_gdf.to_crs("EPSG:4326")
-#print("regencies_gdf: ", regencies_gdf[regencies_gdf["KDPKAB"] == "11.10"])
 
 
 ##### Join Polygon to Disaster Data Frame
@@ -50,20 +56,42 @@ print(hidromet_gdf.columns)
 
 
 ##### Pre Process Rainfall Data
+### Year 2025
 ds_2025 = xr.open_dataset(rainfall_p25_2025)
 raw_precip_2025 = ds_2025.precip
 precip_2025 = flip_raster_orientation(raw_precip_2025)
+
+### Year 2024
+ds_2024 = xr.open_dataset(rainfall_p25_2024)
+raw_precip_2024 = ds_2024.precip
+precip_2024 = flip_raster_orientation(raw_precip_2024)
+
+### Year 2023
+ds_2023 = xr.open_dataset(rainfall_p25_2023)
+raw_precip_2023 = ds_2023.precip
+precip_2023 = flip_raster_orientation(raw_precip_2023)
+
+### Year 2022
+ds_2022 = xr.open_dataset(rainfall_p25_2022)
+raw_precip_2022 = ds_2022.precip
+precip_2022 = flip_raster_orientation(raw_precip_2022)
+
+### Year 2021
+ds_2021 = xr.open_dataset(rainfall_p25_2021)
+raw_precip_2021 = ds_2021.precip
+precip_2021 = flip_raster_orientation(raw_precip_2021)
 
 
 ##### Add Daily Precipitation Value to Disaster Dataset
 for i in range(len(hidromet_gdf)):
     if hidromet_gdf.iloc[i].Tahun == 2025:
-
         geom = hidromet_gdf.iloc[i].geometry
         if geom is None:
             hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = None
             continue
-        daily = precip_2025.sel(time=hidromet_gdf.iloc[i].date)
+        #daily = precip_2025.sel(time=hidromet_gdf.iloc[i].date)
+        date_prev = hidromet_gdf.iloc[i].date - pd.Timedelta(days=1)
+        daily = precip_2025.sel(time=date_prev)
         stats = zonal_stats(
             geom,
             daily.values,
@@ -73,12 +101,92 @@ for i in range(len(hidromet_gdf)):
             all_touched=True
         )
         hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = stats[0]["mean"]
-
         print(stats)
         print(hidromet_gdf.iloc[i]["precip"])
 
+    elif hidromet_gdf.iloc[i].Tahun == 2024:
+        geom = hidromet_gdf.iloc[i].geometry
+        if geom is None:
+            hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = None
+            continue
+        #daily = precip_2024.sel(time=hidromet_gdf.iloc[i].date)
+        date_prev = hidromet_gdf.iloc[i].date - pd.Timedelta(days=1)
+        daily = precip_2024.sel(time=date_prev)
+        stats = zonal_stats(
+            geom,
+            daily.values,
+            affine=daily.rio.transform(),
+            stats="mean",
+            nodata=-9999,
+            all_touched=True
+        )
+        hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = stats[0]["mean"]
+        print(stats)
+        print(hidromet_gdf.iloc[i]["precip"])
+
+    elif hidromet_gdf.iloc[i].Tahun == 2023:
+        geom = hidromet_gdf.iloc[i].geometry
+        if geom is None:
+            hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = None
+            continue
+        #daily = precip_2023.sel(time=hidromet_gdf.iloc[i].date)
+        date_prev = hidromet_gdf.iloc[i].date - pd.Timedelta(days=1)
+        daily = precip_2023.sel(time=date_prev)
+        stats = zonal_stats(
+            geom,
+            daily.values,
+            affine=daily.rio.transform(),
+            stats="mean",
+            nodata=-9999,
+            all_touched=True
+        )
+        hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = stats[0]["mean"]
+        print(stats)
+        print(hidromet_gdf.iloc[i]["precip"])
+
+    elif hidromet_gdf.iloc[i].Tahun == 2022:
+        geom = hidromet_gdf.iloc[i].geometry
+        if geom is None:
+            hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = None
+            continue
+        #daily = precip_2022.sel(time=hidromet_gdf.iloc[i].date)
+        date_prev = hidromet_gdf.iloc[i].date - pd.Timedelta(days=1)
+        daily = precip_2022.sel(time=date_prev)
+        stats = zonal_stats(
+            geom,
+            daily.values,
+            affine=daily.rio.transform(),
+            stats="mean",
+            nodata=-9999,
+            all_touched=True
+        )
+        hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = stats[0]["mean"]
+        print(stats)
+        print(hidromet_gdf.iloc[i]["precip"])
+
+    elif hidromet_gdf.iloc[i].Tahun == 2021:
+        geom = hidromet_gdf.iloc[i].geometry
+        if geom is None:
+            hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = None
+            continue
+        #daily = precip_2021.sel(time=hidromet_gdf.iloc[i].date)
+        date_prev = hidromet_gdf.iloc[i].date - pd.Timedelta(days=1)
+        daily = precip_2021.sel(time=date_prev)
+        stats = zonal_stats(
+            geom,
+            daily.values,
+            affine=daily.rio.transform(),
+            stats="mean",
+            nodata=-9999,
+            all_touched=True
+        )
+        hidromet_gdf.loc[hidromet_gdf.index[i], "precip"] = stats[0]["mean"]
+        print(stats)
+        print(hidromet_gdf.iloc[i]["precip"])
+
+### Save as excel
 precip_per_disaster = hidromet_gdf.drop(columns="geometry")
-#precip_per_disaster.to_excel("output/precip_per_disaster.xlsx")
+precip_per_disaster.to_excel("output/precip_per_disaster.xlsx")
 
 ##### Calculate Precip Mean Value of Each Regency
 grouped_gdf = hidromet_gdf.groupby(by="Kode Kabupaten")
@@ -119,7 +227,6 @@ result = pd.merge(
     right_on="KDPKAB",
     how="left"
 )
-
 result = result.sort_values(by = "mean_precip", ascending=True)
 
 print(result)
@@ -128,17 +235,27 @@ print(result.info())
 
 ### Save Regency Stats to excel
 df_result = result.drop(columns="geometry")
-#df_result.to_excel("output/result.xlsx")
+df_result.to_excel("output/result.xlsx")
 
 
 ##### Visualisation
+### Create Background
+box_bg = gpd.GeoDataFrame(
+    geometry=[box(Long[0], Lat[0], Long[1], Lat[1])],
+    crs=hidromet_gdf.crs
+)
+
 ### Print Thematic Map
 fig1, ax1 = plt.subplots(figsize=(12,7))
 
+# Background
+box_bg.plot(ax=ax1, color="lightblue", zorder=0)
+
+# Thematic Layer
 result.plot(
     column="mean_precip",
     cmap="Reds_r",
-    scheme="equal_interval",
+    scheme="quantiles",
     k=5,
     legend=True,
     legend_kwds={
@@ -148,6 +265,9 @@ result.plot(
         "reverse": True
     },
     ax=ax1,
+    edgecolor="grey",
+    linewidth=0.3,
+    zorder=1,
     missing_kwds={
         "color": "lightgrey",
         "label": "Missing values",
@@ -155,21 +275,21 @@ result.plot(
 )
 ax1.set_title("Mean Daily Precipitation During Flood or Landslide Events (2021–2025)")
 ax1.axis("off")
-#fig1.savefig("output/thematic_map.png", dpi=300)
+fig1.savefig("output/thematic_map.png", dpi=300)
 
 ### Print Bar Chart
-top15 = result.sort_values("mean_precip").head(10)
+top_reg = result.sort_values("mean_precip").head(20)
 
 fig2, ax2 = plt.subplots(figsize=(12,7))
 ax2.bar(
-    top15["NAMOBJ"],
-    top15["mean_precip"]
+    top_reg["NAMOBJ"],
+    top_reg["mean_precip"]
 )
-ax2.set_title("Top 10 Regencies with the Lowest Mean Precipitation During Flood or Landslide Events")
+ax2.set_title("Top 20 Regencies with the Lowest Mean Precipitation During Flood or Landslide Events")
 ax2.set_ylabel("Mean Precipitation")
 ax2.tick_params(axis="x", rotation=45)
 plt.tight_layout()
-#fig2.savefig("output/top10_regencies.png", dpi=300)
+fig2.savefig("output/top20_regencies.png", dpi=300)
 
 plt.show()
 
