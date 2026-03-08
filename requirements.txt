@@ -7,3 +7,5 @@ rasterstats
 matplotlib
 netcdf4
 h5netcdf
+openpyxl
+mapclassify
