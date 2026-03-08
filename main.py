@@ -18,23 +18,26 @@ def flip_raster_orientation(precip):
 disaster_data = r"data/2021_2025_disaster.csv"
 test_data = r"data/test_data.csv"
 regency_boundaries = r"data/shapefile/regency_boundaries.shp"
+regency_boundaries_s0001 = r"data/shapefile/regency_boundaries_s0001.shp"
 rainfall_p05_2025 = r"data/rainfall/chirps-v2.0.2025.days_p05.nc"
 rainfall_p25_2025 = r"data/rainfall/chirps-v2.0.2025.days_p25.nc"
+
 # Indonesia's Extend
 Lat = [-12, 7]
 Long = [94, 142]
 
 
 ##### Pre Process Disaster Data
-disaster_df = pd.read_csv(test_data)
+disaster_df = pd.read_csv(disaster_data, dtype={"Kode Kabupaten": str})
 wet_hidromet_class = ["Banjir", "Longsor"]
 hidromet_df = disaster_df[disaster_df["Jenis Bencana"].isin(wet_hidromet_class)].copy()
-hidromet_df["Kode Kabupaten"] = hidromet_df["Kode Kabupaten"].astype(str)
+#print("hidromet_df: ", hidromet_df[hidromet_df["Kode Kabupaten"] == "11.10"])
 
 
 ##### Pre Process Regencies Data
 regencies_gdf = gpd.read_file(regency_boundaries, columns=["KDPKAB", "NAMOBJ"])
 regencies_gdf = regencies_gdf.to_crs("EPSG:4326")
+#print("regencies_gdf: ", regencies_gdf[regencies_gdf["KDPKAB"] == "11.10"])
 
 
 ##### Join Polygon to Disaster Data Frame
@@ -74,6 +77,8 @@ for i in range(len(hidromet_gdf)):
         print(stats)
         print(hidromet_gdf.iloc[i]["precip"])
 
+precip_per_disaster = hidromet_gdf.drop(columns="geometry")
+#precip_per_disaster.to_excel("output/precip_per_disaster.xlsx")
 
 ##### Calculate Precip Mean Value of Each Regency
 grouped_gdf = hidromet_gdf.groupby(by="Kode Kabupaten")
@@ -101,13 +106,11 @@ kab_stats["jumlah_kejadian"] = kab_stats["jumlah_kejadian"].astype(int)
 kab_stats = gpd.GeoDataFrame(kab_stats, geometry="geometry", crs=hidromet_gdf.crs)
 kab_stats = kab_stats.drop(columns=["geometry"])
 kab_stats = kab_stats.drop(columns=["nama_kab"])
-print(kab_stats.info())
-print(kab_stats.columns)
 
+print("kab_stats_column: ", kab_stats.columns)
+print("regencies_gdf_columns: ", regencies_gdf.columns)
 
-##### Visualisation
 ### Join Calculated Precip Mean Value to Regencies Datasets
-print(regencies_gdf.columns)
 
 result = pd.merge(
     left = regencies_gdf,
@@ -117,9 +120,56 @@ result = pd.merge(
     how="left"
 )
 
+result = result.sort_values(by = "mean_precip", ascending=True)
+
+print(result)
 print(result.columns)
 print(result.info())
 
+### Save Regency Stats to excel
+df_result = result.drop(columns="geometry")
+#df_result.to_excel("output/result.xlsx")
 
+
+##### Visualisation
 ### Print Thematic Map
-### Show Table (sorted from minimum)
+fig1, ax1 = plt.subplots(figsize=(12,7))
+
+result.plot(
+    column="mean_precip",
+    cmap="Reds_r",
+    scheme="equal_interval",
+    k=5,
+    legend=True,
+    legend_kwds={
+        "fmt": "{:.1f} mm",
+        "title": "Mean Daily Precipitation",
+        "loc": "upper right",
+        "reverse": True
+    },
+    ax=ax1,
+    missing_kwds={
+        "color": "lightgrey",
+        "label": "Missing values",
+    },
+)
+ax1.set_title("Mean Daily Precipitation During Flood or Landslide Events (2021–2025)")
+ax1.axis("off")
+#fig1.savefig("output/thematic_map.png", dpi=300)
+
+### Print Bar Chart
+top15 = result.sort_values("mean_precip").head(10)
+
+fig2, ax2 = plt.subplots(figsize=(12,7))
+ax2.bar(
+    top15["NAMOBJ"],
+    top15["mean_precip"]
+)
+ax2.set_title("Top 10 Regencies with the Lowest Mean Precipitation During Flood or Landslide Events")
+ax2.set_ylabel("Mean Precipitation")
+ax2.tick_params(axis="x", rotation=45)
+plt.tight_layout()
+#fig2.savefig("output/top10_regencies.png", dpi=300)
+
+plt.show()
+
