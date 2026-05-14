@@ -39,7 +39,8 @@ filtered_gdf = regencies_gdf[regencies_gdf["KDPKAB"].notna()]
 print(regencies_gdf.columns)
 
 ### Pre Process Rainfall Data
-years = [2025, 2024, 2023, 2022, 2021, 2020]
+all_years = [2025, 2024, 2023, 2022, 2021, 2020]
+years = [2020]
 rainfall_files = {
     2025: rainfall_p25_2025,
     2024: rainfall_p25_2024,
@@ -91,7 +92,7 @@ for year in years:
 
 df_control = pd.DataFrame(all_records)
 
-### Save as excel
-df_control.to_excel("output/df_control.xlsx")
+### Save as csv
+df_control.to_csv(f"output/df_control_{years[0]}.csv", index=False)
 
 print(all_records[0])
