@@ -1,6 +1,6 @@
 # Relationship Between Rainfall and Hydrometeorological Disasters in Indonesia
 
-This repository contains Python scripts used to analyze the relationship between antecedent rainfall conditions and hydrometeorological disasters in Indonesia, particularly flood and landslide events at regency/city level.
+This repository contains Python script used to analyze the relationship between antecedent rainfall conditions and hydrometeorological disasters in Indonesia, particularly flood and landslide events at regency/city level.
 
 The analysis utilizes:
 - CHIRPS daily satellite rainfall data,
